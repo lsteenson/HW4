@@ -63,49 +63,47 @@ When /^I have opted to see movies rated: "(.*?)"$/ do |rating_list|
   # HINT: use String#split to split up the rating_list, then
   # iterate over the ratings and check/uncheck the ratings
   # using the appropriate Capybara command(s)
-  Movie.all_ratings.each do |all|
-  	all = "ratings_" + all
-  	uncheck(all)
+  Movie.all_ratings.each do |rating|
+    uncheck("ratings_"+rating)
   end
-  rl = rating_list.split(', ')
-  rl.each do |rt|
-  	rt = "ratings_" + rt
-  	check(rt)
+
+  rating_list.split(", ").each do |rating|
+    check("ratings_"+rating)
   end
+
+  click_button("Refresh")
 end
 
-Then /^I should see only movies rated "(.*?)"$/ do |ratings_list|
-	ratings = ratings_list.split(", ")
-	db_size = Movie.find(:all, :conditions => {:rating => ratings}).size
-	rows = page.all("table tr").count - 1
+Then /^I should see only movies rated "(.*?)"$/ do |rating_list|
+  result = false
+  all("tr").each do |tr|
+    result = false
+    rating_list.split(", ").each do |rating|
+      if tr.has_content?(rating)
+        result = true
+        break
+      end
+    end
+    if !result
+      break
+    end
+  end
+  assert result
 end
 
 Then /^I should see all of the movies$/ do
-	db_size = Movie.all.size
-	rows = page.all("table tr").count - 1
-  rows.should == db_size
+  rows = all("tr").length
+  movies = Movie.all.length
+  movies.should == rows - 1
 end
 
-When /^I have opted to see "(.*?)" before "(.*?)"$/ do |movie1, movie2|
-  click_link('title_header')
-  first = page.body.split(movie1,2)
-  second = page.body.split(movie2, 2)
-  fl = first[0].length
-  sl = second[0].length
-  if fl > sl
-    click_link('release_date_header')
-  end
+When /^I have opted to sort the movie list by "(.*?)"$/ do |column|
+  click_on "#{column}"
 end
 
 Then /^I should see "(.*?)" before "(.*?)"$/ do |movie1, movie2|
-	first = page.body.split(movie1,2)
-  second = page.body.split(movie2, 2)
-  fl = first[0].length
-  sl = second[0].length
-  fl.should < sl
+  page.body.should match(/#{movie1}.*#{movie2}/m)
 end
-
-
 
 When /^I have edited the movie "(.*?)" to change the director to "(.*?)"$/ do |title, director|
   visit movies_path
@@ -167,6 +165,3 @@ end
 When /^I have opted to view movies by the same director$/ do
   click_on "Find movies by same director"
 end
-
-
-
